@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wecare Dataverse Viewer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f3f4f6;
+      padding: 40px;
+      color: #111827;
+    }
+    .container {
+      max-width: 480px;
+      margin: auto;
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-top: 18px;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      margin-top: 24px;
+      background: #3b82f6;
+      color: white;
+      font-weight: 600;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    pre {
+      white-space: pre-wrap;
+      background: #f9fafb;
+      padding: 12px;
+      margin-top: 24px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Lấy dữ liệu từ Dataverse</h2>
+    <label for="table">Chọn bảng (Logical Name)</label>
+    <select id="table">
+      <option value="accounts">accounts</option>
+      <option value="contacts">contacts</option>
+      <option value="leads">leads</option>
+      <option value="opportunities">opportunities</option>
+    </select>
+
+    <button onclick="loadData()">📦 Load Data</button>
+
+    <pre id="output">Chưa có dữ liệu...</pre>
+  </div>
+
+  <script>
+    async function loadData() {
+      const table = document.getElementById("table").value;
+      const output = document.getElementById("output");
+      output.textContent = "⏳ Đang tải dữ liệu...";
+
+      const webhook = "https://prod-51.southeastasia.logic.azure.com:443/workflows/1db8c4d15497441287f7c888e8888ed4/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8smnu3fDoDarEJ1vXEJV5YTDTjhQMKNHrM_AGw3uqXs";
+
+      const payload = {
+        targetUrl: `https://wecare-ii.crm5.dynamics.com/api/data/v9.2/${table}?$top=5`
+      };
+
+      try {
+        const res = await fetch(webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error(`Lỗi ${res.status}`);
+
+        const json = await res.json();
+        output.textContent = JSON.stringify(json, null, 2);
+
+        // 🔽 Tự động ghi file data.json
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'data.json';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+      } catch (err) {
+        output.textContent = `❌ ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
